@@ -7,8 +7,10 @@ import importlib
 import os
 
 from fairseq import registry
-from fairseq.optim.lr_scheduler.fairseq_lr_scheduler import FairseqLRScheduler
+from fairseq.optim.lr_scheduler.fairseq_lr_scheduler import FairseqLRScheduler, LegacyFairseqLRScheduler # noqa
 
+
+LR_SCHEDULER_DATACLASS_REGISTRY = {}
 
 build_lr_scheduler, register_lr_scheduler, LR_SCHEDULER_REGISTRY = registry.setup_registry(
     '--lr-scheduler',

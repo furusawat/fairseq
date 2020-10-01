@@ -64,8 +64,13 @@ class Trainer(object):
         elif args.bf16:
             self._criterion = self._criterion.to(dtype=torch.bfloat16)
             self._model = self._model.to(dtype=torch.bfloat16)
-        self._criterion = self._criterion.to(device=self.device)
-        self._model = self._model.to(device=self.device)
+        if not args.pipeline_model_parallel:
+            self._criterion = self._criterion.to(device=self.device)
+            self._model = self._model.to(device=self.device)
+        self.pipeline_model_parallel = args.pipeline_model_parallel
+        self.last_device = None
+        if self.cuda and self.pipeline_model_parallel:
+            self.last_device = torch.device(args.pipeline_devices[-1])
 
         # check that shared parameters are preserved after device transfer
         for shared_param in shared_params:
@@ -339,6 +344,7 @@ class Trainer(object):
         load_dataset=True,
         data_selector=None,
         shard_batch_itr=True,
+        disable_iterator_cache=False,
     ):
         """Return an EpochBatchIterator over the training set for a given epoch."""
         if load_dataset:
@@ -365,11 +371,14 @@ class Trainer(object):
             shard_id=self.data_parallel_rank if shard_batch_itr else 0,
             num_workers=self.args.num_workers,
             epoch=epoch,
+            data_buffer_size=self.args.data_buffer_size,
+            disable_iterator_cache=disable_iterator_cache,
         )
 
     def get_valid_iterator(
         self,
         subset,
+        disable_iterator_cache=False,
     ):
         """Return an EpochBatchIterator over given validation subset for a given epoch."""
         return self.task.get_batch_iterator(
@@ -386,6 +395,8 @@ class Trainer(object):
             num_shards=self.data_parallel_world_size,
             shard_id=self.data_parallel_rank,
             num_workers=self.args.num_workers,
+            data_buffer_size=self.args.data_buffer_size,
+            disable_iterator_cache=disable_iterator_cache,
         )
 
     def begin_epoch(self, epoch):
@@ -398,11 +409,23 @@ class Trainer(object):
         # task specific setup per epoch
         self.task.begin_epoch(epoch, self.get_model())
 
+        # reset dummy batch
+        self._dummy_batch = 'DUMMY'
+
         if self.tpu:
             import torch_xla.core.xla_model as xm
 
             xm.rendezvous('begin_epoch')  # wait for all workers
             xm.mark_step()
+
+    def begin_valid_epoch(self, epoch):
+        """Called at the beginning of each validation epoch."""
+
+        # task specific setup per validation epoch
+        self.task.begin_valid_epoch(epoch, self.get_model())
+        
+        # reset dummy batch
+        self._dummy_batch = 'DUMMY'
 
     @metrics.aggregate("train")
     def train_step(self, samples, raise_oom=False):
@@ -785,7 +808,11 @@ class Trainer(object):
             return None
 
         if self.cuda:
-            sample = utils.move_to_cuda(sample)
+            if self.pipeline_model_parallel:
+                if 'target' in sample:
+                    sample['target'] = utils.move_to_cuda(sample['target'], device=self.last_device)
+            else:
+                sample = utils.move_to_cuda(sample)
 
         def apply_half(t):
             if t.dtype is torch.float32:

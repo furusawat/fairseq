@@ -107,7 +107,12 @@ def main(args):
 
     # Load the latest checkpoint if one is available and restore the
     # corresponding train iterator
-    extra_state, epoch_itr = checkpoint_utils.load_checkpoint(args, trainer)
+    extra_state, epoch_itr = checkpoint_utils.load_checkpoint(
+        args,
+        trainer,
+        # don't cache epoch iterators for sharded datasets
+        disable_iterator_cache=task.has_sharded_data("train"),
+    )
 
     # Train until the learning rate gets too small
     max_epoch = args.max_epoch or math.inf
@@ -128,6 +133,8 @@ def main(args):
             epoch_itr.next_epoch_idx,
             # sharded data: get train iterator for next epoch
             load_dataset=task.has_sharded_data("train"),
+            # don't cache epoch iterators for sharded datasets
+            disable_iterator_cache=task.has_sharded_data("train"),
         )
     train_meter.stop()
     logger.info("done training in {:.1f} seconds".format(train_meter.sum))
@@ -287,6 +294,7 @@ def validate(args, trainer, task, epoch_itr, subsets):
         # set fixed seed for every validation
         utils.set_torch_seed(args.fixed_validation_seed)
 
+    trainer.begin_valid_epoch(epoch_itr.epoch)
     valid_losses = []
     for subset in subsets:
         logger.info('begin validation on "{}" subset'.format(subset))
