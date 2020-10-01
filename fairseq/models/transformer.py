@@ -34,6 +34,38 @@ from torch import Tensor
 DEFAULT_MAX_SOURCE_POSITIONS = 1024
 DEFAULT_MAX_TARGET_POSITIONS = 1024
 
+class SaliencyPrint():
+
+    def __init__(self):
+        self.mat = None
+
+    def PrintGrad(self, grad):
+        tmp_grad = torch.sum(torch.abs(grad[0]), dim=(1, 2))
+        if self.mat == None:
+            self.mat = tmp_grad.unsqueeze(0)
+        else:
+            self.mat = torch.cat((self.mat, tmp_grad.unsqueeze(0)), 0)
+        tmp_mat = self.mat * self.mat / torch.sum(self.mat, dim=0)
+        tmp_mat = tmp_mat.permute(1, 0)
+        print(tmp_mat)
+
+        tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
+        print("   ", end="")
+        for i in range(len(self.mat)):
+            print("{:3d}".format(i), end="")
+        print()
+        for i in range(len(grad[0])):
+            print("{:3d}".format(i), end="")
+            for j in range(len(self.mat)):
+                if tmp_mat[i][j] in tmp_topk[0]:
+                    print("  *", end="")
+                else:
+                    print("   ", end="")
+            print()
+        for i in range(len(grad[0])):
+            for j in range(len(self.mat)):
+                if tmp_mat[i][j] in tmp_topk[0]:
+                    print("{} {}".format(i,j))
 
 @register_model("transformer")
 class TransformerModel(FairseqEncoderDecoderModel):
@@ -372,6 +404,16 @@ class TransformerEncoder(FairseqEncoder):
         x = self.dropout_module(x)
         if self.quant_noise is not None:
             x = self.quant_noise(x)
+
+        print(x)
+        noise = torch.normal(1, 0.1, size=(100, *x.shape)).cuda()
+        x = x * noise
+        sl = torch.ones_like(x)
+        sl.requires_grad = True
+        TempSaliency = SaliencyPrint()
+        sl.register_hook(lambda grad: TempSaliency.PrintGrad(grad.permute(1,2,3,0)))
+        x = torch.mean(x * sl, dim=0) 
+        print(x)
         return x, embed
 
     def forward(self, src_tokens, src_lengths, return_all_hiddens: bool = False):
@@ -744,7 +786,7 @@ class TransformerDecoder(FairseqIncrementalDecoder):
                 positions = positions[:, -1:]
 
         # embed tokens and positions
-        x = self.embed_scale * self.embed_tokens(prev_output_tokens)
+        x = self.embed_scale * self.embed_tokens(prev_output_tokens.clone())
 
         if self.quant_noise is not None:
             x = self.quant_noise(x)
@@ -812,7 +854,14 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         """Project features to the vocabulary size."""
         if self.adaptive_softmax is None:
             # project back to size of vocabulary
-            return self.output_projection(features)
+            x = self.output_projection(features)
+            loss = nn.MSELoss()
+            tmp_input = x.clone().cuda()
+            for i in range(len(tmp_input)):
+                tmp_input[i][0][torch.topk(tmp_input[i][0],2)[1]] = torch.min(x)
+            tmp_output = loss(x, tmp_input)
+            tmp_output.backward(retain_graph = True)
+            return x
         else:
             return features
 

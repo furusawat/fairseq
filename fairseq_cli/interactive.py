@@ -230,6 +230,7 @@ def main(args):
             if src_dict is not None:
                 src_str = src_dict.string(src_tokens, args.remove_bpe)
                 print('S-{}\t{}'.format(id_, src_str))
+                print('{}'.format(src_str))
                 print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
                 for constraint in info["constraints"]:
                     print("C-{}\t{}".format(id_, tgt_dict.string(constraint, args.remove_bpe)))
@@ -249,6 +250,7 @@ def main(args):
                 score = hypo['score'] / math.log(2)  # convert to base 2
                 # original hypothesis (after tokenization and BPE)
                 print('H-{}\t{}\t{}'.format(id_, score, hypo_str))
+                print('{}'.format(hypo_str))
                 # detokenized hypothesis
                 print('D-{}\t{}\t{}'.format(id_, score, detok_hypo_str))
                 print('P-{}\t{}'.format(

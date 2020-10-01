@@ -149,7 +149,7 @@ class SequenceGenerator(nn.Module):
                 )
                 yield id, src, ref, hypos[i]
 
-    @torch.no_grad()
+    #@torch.no_grad()
     def generate(self, models, sample: Dict[str, Dict[str, Tensor]], **kwargs):
         """Generate translations. Match the api of other fairseq generators.
 
@@ -470,8 +470,9 @@ class SequenceGenerator(nn.Module):
                 cand_indices, dim=1, index=active_hypos
             )
             if step > 0:
+                tmp_scores=scores.clone()
                 scores[:, :step] = torch.index_select(
-                    scores[:, :step], dim=0, index=active_bbsz_idx
+                    tmp_scores[:, :step], dim=0, index=active_bbsz_idx
                 )
             scores.view(bsz, beam_size, -1)[:, :, step] = torch.gather(
                 cand_scores, dim=1, index=active_hypos
