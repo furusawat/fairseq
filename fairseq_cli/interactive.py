@@ -147,6 +147,7 @@ def main(args):
 
     # Optimize ensemble for generation
     for model in models:
+        model.args.saliency = args.saliency
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -229,11 +230,13 @@ def main(args):
         for id_, src_tokens, hypos, info in sorted(results, key=lambda x: x[0]):
             if src_dict is not None:
                 src_str = src_dict.string(src_tokens, args.remove_bpe)
-                print('S-{}\t{}'.format(id_, src_str))
-                print('{}'.format(src_str))
-                print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
-                for constraint in info["constraints"]:
-                    print("C-{}\t{}".format(id_, tgt_dict.string(constraint, args.remove_bpe)))
+                if args.saliency is True:
+                    print('{}'.format(src_str))
+                else:
+                    print('S-{}\t{}'.format(id_, src_str))
+                    print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
+                    for constraint in info["constraints"]:
+                        print("C-{}\t{}".format(id_, tgt_dict.string(constraint, args.remove_bpe)))
 
             # Process top predictions
             for hypo in hypos[:min(len(hypos), args.nbest)]:
@@ -248,25 +251,27 @@ def main(args):
                 )
                 detok_hypo_str = decode_fn(hypo_str)
                 score = hypo['score'] / math.log(2)  # convert to base 2
-                # original hypothesis (after tokenization and BPE)
-                print('H-{}\t{}\t{}'.format(id_, score, hypo_str))
-                print('{}'.format(hypo_str))
-                # detokenized hypothesis
-                print('D-{}\t{}\t{}'.format(id_, score, detok_hypo_str))
-                print('P-{}\t{}'.format(
-                    id_,
-                    ' '.join(map(
-                        lambda x: '{:.4f}'.format(x),
-                        # convert from base e to base 2
-                        hypo['positional_scores'].div_(math.log(2)).tolist(),
-                    ))
-                ))
-                if args.print_alignment:
-                    alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
-                    print('A-{}\t{}'.format(
+                if args.saliency is True:
+                    print('{}'.format(hypo_str))
+                else:
+                    # original hypothesis (after tokenization and BPE)
+                    print('H-{}\t{}\t{}'.format(id_, score, hypo_str))
+                    # detokenized hypothesis
+                    print('D-{}\t{}\t{}'.format(id_, score, detok_hypo_str))
+                    print('P-{}\t{}'.format(
                         id_,
-                        alignment_str
+                        ' '.join(map(
+                            lambda x: '{:.4f}'.format(x),
+                            # convert from base e to base 2
+                            hypo['positional_scores'].div_(math.log(2)).tolist(),
+                        ))
                     ))
+                    if args.print_alignment:
+                        alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
+                        print('A-{}\t{}'.format(
+                            id_,
+                            alignment_str
+                        ))
 
         # update running id_ counter
         start_id += len(inputs)

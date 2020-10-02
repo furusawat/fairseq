@@ -89,6 +89,7 @@ def _main(args, output_file):
 
     # Optimize ensemble for generation
     for model in models:
+        model.args.saliency = args.saliency
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -195,11 +196,13 @@ def _main(args, output_file):
                 target_str = decode_fn(target_str)
 
             if not args.quiet:
-                if src_dict is not None:
-                    print('S-{}\t{}'.format(sample_id, src_str), file=output_file)
+                if args.saliency is True:
                     print('{}'.format(src_str), file=output_file)
-                if has_target:
-                    print('T-{}\t{}'.format(sample_id, target_str), file=output_file)
+                else:
+                    if src_dict is not None:
+                        print('S-{}\t{}'.format(sample_id, src_str), file=output_file)
+                    if has_target:
+                        print('T-{}\t{}'.format(sample_id, target_str), file=output_file)
 
             # Process top predictions
             for j, hypo in enumerate(hypos[i][:args.nbest]):
@@ -215,40 +218,42 @@ def _main(args, output_file):
                 detok_hypo_str = decode_fn(hypo_str)
                 if not args.quiet:
                     score = hypo['score'] / math.log(2)  # convert to base 2
-                    # original hypothesis (after tokenization and BPE)
-                    print('H-{}\t{}\t{}'.format(sample_id, score, hypo_str), file=output_file)
-                    print('{}'.format(hypo_str), file=output_file)
-                    # detokenized hypothesis
-                    print('D-{}\t{}\t{}'.format(sample_id, score, detok_hypo_str), file=output_file)
-                    print('P-{}\t{}'.format(
-                        sample_id,
-                        ' '.join(map(
-                            lambda x: '{:.4f}'.format(x),
-                            # convert from base e to base 2
-                            hypo['positional_scores'].div_(math.log(2)).tolist(),
-                        ))
-                    ), file=output_file)
-
-                    if args.print_alignment:
-                        print('A-{}\t{}'.format(
+                    if args.saliency is True:
+                        print('{}'.format(hypo_str), file=output_file)
+                    else:
+                        # original hypothesis (after tokenization and BPE)
+                        print('H-{}\t{}\t{}'.format(sample_id, score, hypo_str), file=output_file)
+                        # detokenized hypothesis
+                        print('D-{}\t{}\t{}'.format(sample_id, score, detok_hypo_str), file=output_file)
+                        print('P-{}\t{}'.format(
                             sample_id,
-                            ' '.join(['{}-{}'.format(src_idx, tgt_idx) for src_idx, tgt_idx in alignment])
+                            ' '.join(map(
+                                lambda x: '{:.4f}'.format(x),
+                                # convert from base e to base 2
+                                hypo['positional_scores'].div_(math.log(2)).tolist(),
+                            ))
                         ), file=output_file)
 
-                    if args.print_step:
-                        print('I-{}\t{}'.format(sample_id, hypo['steps']), file=output_file)
+                        if args.print_alignment:
+                            print('A-{}\t{}'.format(
+                                sample_id,
+                                ' '.join(['{}-{}'.format(src_idx, tgt_idx) for src_idx, tgt_idx in alignment])
+                            ), file=output_file)
 
-                    if getattr(args, 'retain_iter_history', False):
-                        for step, h in enumerate(hypo['history']):
-                            _, h_str, _ = utils.post_process_prediction(
-                                hypo_tokens=h['tokens'].int().cpu(),
-                                src_str=src_str,
-                                alignment=None,
-                                align_dict=None,
-                                tgt_dict=tgt_dict,
-                                remove_bpe=None,
-                            )
-                            print('E-{}_{}\t{}'.format(sample_id, step, h_str), file=output_file)
+                        if args.print_step:
+                            print('I-{}\t{}'.format(sample_id, hypo['steps']), file=output_file)
+
+                        if getattr(args, 'retain_iter_history', False):
+                            for step, h in enumerate(hypo['history']):
+                                _, h_str, _ = utils.post_process_prediction(
+                                    hypo_tokens=h['tokens'].int().cpu(),
+                                    src_str=src_str,
+                                    alignment=None,
+                                    align_dict=None,
+                                    tgt_dict=tgt_dict,
+                                    remove_bpe=None,
+                                )
+                                print('E-{}_{}\t{}'.format(sample_id, step, h_str), file=output_file)
 
                 # Score only the top hypothesis
                 if has_target and j == 0:

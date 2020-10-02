@@ -338,6 +338,7 @@ class TransformerEncoder(FairseqEncoder):
 
     def __init__(self, args, dictionary, embed_tokens):
         super().__init__(dictionary)
+        self.args = args
         self.register_buffer("version", torch.Tensor([3]))
 
         self.dropout_module = FairseqDropout(args.dropout, module_name=self.__class__.__name__)
@@ -404,15 +405,14 @@ class TransformerEncoder(FairseqEncoder):
         if self.quant_noise is not None:
             x = self.quant_noise(x)
 
-        print(x)
-        noise = torch.normal(1, 0.1, size=(100, *x.shape)).cuda()
-        x = x * noise
-        sl = torch.ones_like(x)
-        sl.requires_grad = True
-        TempSaliency = SaliencyPrint()
-        sl.register_hook(lambda grad: TempSaliency.PrintGrad(grad.permute(1,2,3,0)))
-        x = torch.mean(x * sl, dim=0) 
-        print(x)
+        if self.args.saliency is True:
+            noise = torch.normal(1, 0.1, size=(100, *x.shape)).cuda()
+            x = x * noise
+            sl = torch.ones_like(x)
+            sl.requires_grad = True
+            TempSaliency = SaliencyPrint()
+            sl.register_hook(lambda grad: TempSaliency.PrintGrad(grad.permute(1,2,3,0)))
+            x = torch.mean(x * sl, dim=0)
         return x, embed
 
     def forward(self, src_tokens, src_lengths, return_all_hiddens: bool = False):
@@ -854,12 +854,13 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         if self.adaptive_softmax is None:
             # project back to size of vocabulary
             x = self.output_projection(features)
-            loss = nn.MSELoss()
-            tmp_input = x.clone().cuda()
-            for i in range(len(tmp_input)):
-                tmp_input[i][0][torch.topk(tmp_input[i][0],2)[1]] = torch.min(x)
-            tmp_output = loss(x, tmp_input)
-            tmp_output.backward(retain_graph = True)
+            if self.args.saliency is True:
+                loss = nn.MSELoss()
+                tmp_input = x.clone().cuda()
+                for i in range(len(tmp_input)):
+                    tmp_input[i][0][torch.topk(tmp_input[i][0],2)[1]] = torch.min(x)
+                tmp_output = loss(x, tmp_input)
+                tmp_output.backward(retain_graph = True)
             return x
         else:
             return features

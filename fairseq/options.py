@@ -658,6 +658,8 @@ def add_generation_args(parser):
     # special decoding format for advanced decoding.
     group.add_argument('--decoding-format', default=None, type=str, choices=['unigram', 'ensemble', 'vote', 'dp', 'bs'])
     # fmt: on
+
+    parser.add_argument('--saliency', action='store_true')
     return group
 
 
