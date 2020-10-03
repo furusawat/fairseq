@@ -15,6 +15,41 @@ from fairseq.utils import csv_str_list, eval_str_list, eval_str_dict, eval_bool 
 from fairseq import utils
 from fairseq.data.indexed_dataset import get_available_dataset_impl
 
+class SaliencyPrint():
+
+    def __init__(self):
+        self.mat = None
+
+    def Grad(self, grad):
+        tmp_grad = torch.sum(torch.abs(grad[0]), dim=(1, 2))
+        if self.mat == None:
+            self.mat = tmp_grad.unsqueeze(0)
+        else:
+            self.mat = torch.cat((self.mat, tmp_grad.unsqueeze(0)), 0)
+
+    def PrintGrad(self):
+        tmp_mat = self.mat * self.mat / torch.sum(self.mat, dim=0)
+        tmp_mat = tmp_mat.permute(1, 0)
+
+        tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
+        for i in range(len(self.mat[0])):
+            for j in range(len(self.mat)):
+                if tmp_mat[i][j] in tmp_topk[0]:
+                    print("{} {}".format(i,j))
+
+        print("   ", end="")
+        for i in range(len(self.mat)):
+            print("{:3d}".format(i), end="")
+        print()
+        for i in range(len(self.mat[0])):
+            print("{:3d}".format(i), end="")
+            for j in range(len(self.mat)):
+                if tmp_mat[i][j] in tmp_topk[0]:
+                    print("  *", end="")
+                else:
+                    print("   ", end="")
+            print()
+        self.mat = None
 
 class FileContentsAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
@@ -659,7 +694,7 @@ def add_generation_args(parser):
     group.add_argument('--decoding-format', default=None, type=str, choices=['unigram', 'ensemble', 'vote', 'dp', 'bs'])
     # fmt: on
 
-    parser.add_argument('--saliency', action='store_true')
+    parser.add_argument('--saliency', action='store_const', const=SaliencyPrint())
     return group
 
 

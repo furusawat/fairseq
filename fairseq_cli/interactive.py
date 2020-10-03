@@ -230,7 +230,7 @@ def main(args):
         for id_, src_tokens, hypos, info in sorted(results, key=lambda x: x[0]):
             if src_dict is not None:
                 src_str = src_dict.string(src_tokens, args.remove_bpe)
-                if args.saliency is True:
+                if args.saliency is not None:
                     print('{}'.format(src_str))
                 else:
                     print('S-{}\t{}'.format(id_, src_str))
@@ -251,7 +251,7 @@ def main(args):
                 )
                 detok_hypo_str = decode_fn(hypo_str)
                 score = hypo['score'] / math.log(2)  # convert to base 2
-                if args.saliency is True:
+                if args.saliency is not None:
                     print('{}'.format(hypo_str))
                 else:
                     # original hypothesis (after tokenization and BPE)
@@ -272,6 +272,9 @@ def main(args):
                             id_,
                             alignment_str
                         ))
+
+                if args.saliency is not None:
+                    args.saliency.PrintGrad()
 
         # update running id_ counter
         start_id += len(inputs)

@@ -196,7 +196,7 @@ def _main(args, output_file):
                 target_str = decode_fn(target_str)
 
             if not args.quiet:
-                if args.saliency is True:
+                if args.saliency is not None:
                     print('{}'.format(src_str), file=output_file)
                 else:
                     if src_dict is not None:
@@ -218,7 +218,7 @@ def _main(args, output_file):
                 detok_hypo_str = decode_fn(hypo_str)
                 if not args.quiet:
                     score = hypo['score'] / math.log(2)  # convert to base 2
-                    if args.saliency is True:
+                    if args.saliency is not None:
                         print('{}'.format(hypo_str), file=output_file)
                     else:
                         # original hypothesis (after tokenization and BPE)
@@ -254,6 +254,9 @@ def _main(args, output_file):
                                     remove_bpe=None,
                                 )
                                 print('E-{}_{}\t{}'.format(sample_id, step, h_str), file=output_file)
+
+                    if args.saliency is not None:
+                        args.saliency.PrintGrad()
 
                 # Score only the top hypothesis
                 if has_target and j == 0:
