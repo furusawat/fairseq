@@ -90,6 +90,7 @@ def _main(args, output_file):
     # Optimize ensemble for generation
     for model in models:
         model.args.saliency = args.saliency
+        model.args.force_decode = args.force_decode
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -157,6 +158,8 @@ def _main(args, output_file):
             constraints = sample["constraints"]
 
         gen_timer.start()
+        if args.force_decode is not None:
+            args.force_decode.SetTarget(sample['target'][0])
         hypos = task.inference_step(generator, models, sample, prefix_tokens=prefix_tokens, constraints=constraints)
         num_generated_tokens = sum(len(h[0]['tokens']) for h in hypos)
         gen_timer.stop(num_generated_tokens)

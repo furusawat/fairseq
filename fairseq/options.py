@@ -51,6 +51,22 @@ class SaliencyPrint():
             print()
         self.mat = None
 
+class ForceDecode():
+
+    def __init__(self):
+        self.target = None
+        self.num = -1
+
+    def SetTarget(self, target):
+        self.target = target
+        self.num = -1
+
+    def GetToken(self):
+        if len(self.target)-1 > self.num:
+            self.num += 1
+        return self.target[self.num]
+
+
 class FileContentsAction(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
@@ -695,6 +711,7 @@ def add_generation_args(parser):
     # fmt: on
 
     parser.add_argument('--saliency', action='store_const', const=SaliencyPrint())
+    parser.add_argument('--force-decode', action='store_const', const=ForceDecode())
     return group
 
 

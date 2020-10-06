@@ -821,6 +821,10 @@ class TransformerDecoder(FairseqIncrementalDecoder):
         if self.adaptive_softmax is None:
             # project back to size of vocabulary
             x = self.output_projection(features)
+            if self.args.force_decode is not None:
+                tmp_token = self.args.force_decode.GetToken()
+                for i in range(len(x)):
+                    x[i][0][tmp_token] += 20
             if self.args.saliency is not None:
                 loss = nn.MSELoss()
                 tmp_input = x.clone().cuda()
