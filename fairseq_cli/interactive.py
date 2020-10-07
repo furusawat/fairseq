@@ -148,6 +148,7 @@ def main(args):
     # Optimize ensemble for generation
     for model in models:
         model.args.saliency = args.saliency
+        model.args.force_decode = args.force_decode
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -284,6 +285,8 @@ def main(args):
 def cli_main():
     parser = options.get_interactive_generation_parser()
     args = options.parse_args_and_arch(parser)
+    if args.saliency is not None:
+        args.beam = 1
     distributed_utils.call_main(args, main)
 
 

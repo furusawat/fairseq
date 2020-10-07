@@ -296,6 +296,10 @@ def _main(args, output_file):
 def cli_main():
     parser = options.get_generation_parser()
     args = options.parse_args_and_arch(parser)
+    if args.saliency is not None:
+        args.beam = 1
+        args.batch_size = 1
+        args.max_sentences = 1
     main(args)
 
 
