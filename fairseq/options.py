@@ -28,8 +28,8 @@ class SaliencyPrint():
             self.mat = torch.cat((self.mat, tmp_grad.unsqueeze(0)), 0)
 
     def PrintGrad(self):
-        tmp_mat = self.mat * self.mat / torch.sum(self.mat, dim=0)
-        tmp_mat = tmp_mat.permute(1, 0)
+        tmp_mat = self.mat.permute(1, 0)
+        tmp_mat = tmp_mat / torch.sum(tmp_mat, dim=0)
 
         tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
         for i in range(len(self.mat[0])):

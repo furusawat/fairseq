@@ -89,8 +89,7 @@ def _main(args, output_file):
 
     # Optimize ensemble for generation
     for model in models:
-        model.args.saliency = args.saliency
-        model.args.force_decode = args.force_decode
+        model.encoder.saliency = args.saliency
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -127,6 +126,8 @@ def _main(args, output_file):
     # Initialize generator
     gen_timer = StopwatchMeter()
     generator = task.build_generator(models, args)
+    generator.saliency = args.saliency
+    generator.force_decode = args.force_decode
 
     # Handle tokenization and BPE
     tokenizer = encoders.build_tokenizer(args)
@@ -296,7 +297,7 @@ def _main(args, output_file):
 def cli_main():
     parser = options.get_generation_parser()
     args = options.parse_args_and_arch(parser)
-    if args.saliency is not None:
+    if args.saliency is not None or args.force_decode is not None:
         args.beam = 1
         args.batch_size = 1
         args.max_sentences = 1

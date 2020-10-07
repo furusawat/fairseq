@@ -343,6 +343,14 @@ class SequenceGenerator(nn.Module):
                 lprobs.view(bsz, -1, self.vocab_size),
                 scores.view(bsz, beam_size, -1)[:, :, :step],
             )
+            if self.force_decode is not None:
+                cand_indices[0][0] = self.force_decode.GetToken()
+            if self.saliency is not None:
+                loss = nn.MSELoss()
+                tmp_input = lprobs.clone().cuda()
+                tmp_input[0][cand_indices[0][0]] = -100
+                tmp_output = loss(lprobs, tmp_input)
+                tmp_output.backward(retain_graph = True)
 
             # cand_bbsz_idx contains beam indices for the top candidate
             # hypotheses, with a range of values: [0, bsz*beam_size),

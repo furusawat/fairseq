@@ -147,8 +147,7 @@ def main(args):
 
     # Optimize ensemble for generation
     for model in models:
-        model.args.saliency = args.saliency
-        model.args.force_decode = args.force_decode
+        model.encoder.saliency = args.saliency
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -157,6 +156,8 @@ def main(args):
 
     # Initialize generator
     generator = task.build_generator(models, args)
+    generator.saliency = args.saliency
+    generator.force_decode = args.force_decode
 
     # Handle tokenization and BPE
     tokenizer = encoders.build_tokenizer(args)
@@ -287,6 +288,7 @@ def cli_main():
     args = options.parse_args_and_arch(parser)
     if args.saliency is not None:
         args.beam = 1
+    args.force_decode = None
     distributed_utils.call_main(args, main)
 
 
