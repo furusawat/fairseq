@@ -148,6 +148,7 @@ def main(args):
     # Optimize ensemble for generation
     for model in models:
         model.encoder.saliency = args.saliency
+        model.encoder.smoothgrad = args.smoothgrad
         model.prepare_for_inference_(args)
         if args.fp16:
             model.half()
@@ -158,6 +159,7 @@ def main(args):
     generator = task.build_generator(models, args)
     generator.saliency = args.saliency
     generator.force_decode = args.force_decode
+    generator.smoothgrad = args.smoothgrad
 
     # Handle tokenization and BPE
     tokenizer = encoders.build_tokenizer(args)

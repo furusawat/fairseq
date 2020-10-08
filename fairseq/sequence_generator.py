@@ -198,6 +198,8 @@ class SequenceGenerator(nn.Module):
         # bsz: total number of sentences in beam
         # Note that src_tokens may have more than 2 dimenions (i.e. audio features)
         bsz, src_len = src_tokens.size()[:2]
+        if self.saliency is not None and self.smoothgrad != 0.0:
+            bsz = 100
         beam_size = self.beam_size
 
         if constraints is not None and not self.search.supports_constraints:
@@ -219,6 +221,9 @@ class SequenceGenerator(nn.Module):
             self.min_len <= max_len
         ), "min_len cannot be larger than max_len, please adjust these!"
         # compute the encoder output for each beam
+        if self.saliency is not None and self.smoothgrad != 0.0:
+            net_input['src_tokens'] = net_input['src_tokens'].repeat(100,1)
+            net_input['src_lengths'] = net_input['src_lengths'].repeat(100)
         encoder_outs = self.model.forward_encoder(net_input)
 
         # placeholder of indices for bsz * beam_size to hold tokens and accumulative scores
@@ -346,9 +351,10 @@ class SequenceGenerator(nn.Module):
             if self.force_decode is not None:
                 cand_indices[0][0] = self.force_decode.GetToken()
             if self.saliency is not None:
+                cand_indices[:,0] = cand_indices[0][0]
                 loss = nn.MSELoss()
                 tmp_input = lprobs.clone().cuda()
-                tmp_input[0][cand_indices[0][0]] = -100
+                tmp_input[:,cand_indices[0][0]] = -100
                 tmp_output = loss(lprobs, tmp_input)
                 tmp_output.backward(retain_graph = True)
 

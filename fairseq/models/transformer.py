@@ -373,12 +373,14 @@ class TransformerEncoder(FairseqEncoder):
             x = self.quant_noise(x)
 
         if self.saliency is not None:
-            noise = torch.normal(1, 0.1, size=(100, *x.shape)).cuda()
-            x = x * noise
+            if self.smoothgrad != 0.0:
+                noise = torch.normal(1, self.smoothgrad, x.shape).cuda()
+                x = x * noise
             sl = torch.ones_like(x)
             sl.requires_grad = True
-            sl.register_hook(lambda grad: self.saliency.Grad(grad.permute(1,2,3,0)))
-            x = torch.mean(x * sl, dim=0)
+            sl.register_hook(lambda grad: self.saliency.Grad(grad))
+            x = x * sl
+
         return x, embed
 
     def forward(self, src_tokens, src_lengths, return_all_hiddens: bool = False):

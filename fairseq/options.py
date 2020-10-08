@@ -21,7 +21,7 @@ class SaliencyPrint():
         self.mat = None
 
     def Grad(self, grad):
-        tmp_grad = torch.sum(torch.abs(grad[0]), dim=(1, 2))
+        tmp_grad = torch.sum(torch.abs(grad), dim=(0, 2))
         if self.mat == None:
             self.mat = tmp_grad.unsqueeze(0)
         else:
@@ -712,6 +712,7 @@ def add_generation_args(parser):
 
     parser.add_argument('--saliency', action='store_const', const=SaliencyPrint())
     parser.add_argument('--force-decode', action='store_const', const=ForceDecode())
+    parser.add_argument('--smoothgrad', default=0.0, type=float)
     return group
 
 

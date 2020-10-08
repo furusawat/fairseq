@@ -66,6 +66,7 @@ def main(args):
 
     # Build model and criterion
     model = task.build_model(args)
+    model.encoder.saliency = None
     criterion = task.build_criterion(args)
     logger.info(model)
     logger.info("task: {} ({})".format(args.task, task.__class__.__name__))
@@ -343,8 +344,6 @@ def get_valid_stats(args, trainer, stats):
 def cli_main(modify_parser=None):
     parser = options.get_training_parser()
     args = options.parse_args_and_arch(parser, modify_parser=modify_parser)
-    args.saliency = None
-    args.force_decode = None
     if args.profile:
         with torch.cuda.profiler.profile():
             with torch.autograd.profiler.emit_nvtx():
