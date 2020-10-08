@@ -131,6 +131,7 @@ def main(args):
 
     # Setup task, e.g., translation
     task = tasks.setup_task(args)
+    task.saliency = args.saliency
 
     # Load ensemble
     logger.info('loading model(s) from {}'.format(args.path))

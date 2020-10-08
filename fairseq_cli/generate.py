@@ -69,6 +69,7 @@ def _main(args, output_file):
 
     # Load dataset splits
     task = tasks.setup_task(args)
+    task.saliency = args.saliency
     task.load_dataset(args.gen_subset)
 
     # Set dictionaries
