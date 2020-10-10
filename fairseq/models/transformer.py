@@ -375,6 +375,7 @@ class TransformerEncoder(FairseqEncoder):
         if getattr(self, "saliency", None) is not None:
             if self.smoothgrad != 0.0:
                 noise = torch.normal(1, self.smoothgrad, x.shape).cuda()
+                noise[0] = torch.ones_like(noise[0])
                 x = x * noise
             sl = torch.ones_like(x)
             sl.requires_grad = True

@@ -31,20 +31,26 @@ class SaliencyPrint():
         tmp_mat = self.mat.permute(1, 0)
         tmp_mat = tmp_mat / torch.sum(tmp_mat, dim=0)
 
-        tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
-        for i in range(len(self.mat[0])):
-            for j in range(len(self.mat)):
-                if tmp_mat[i][j] in tmp_topk[0]:
+        #tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
+        tmp_topk = torch.zeros_like(tmp_mat)
+        for i in range(len(tmp_mat)):
+            tmp_topk[i][torch.argmax(tmp_mat[i])] = 1
+        for i in range(len(tmp_mat[0])):
+            tmp_topk[torch.argmax(tmp_mat.permute(1,0)[i])][i] = 1
+
+        for i in range(len(tmp_mat)):
+            for j in range(len(tmp_mat[0])):
+                if tmp_topk[i][j] > 0:
                     print("{} {}".format(i,j))
 
         print("   ", end="")
-        for i in range(len(self.mat)):
+        for i in range(len(tmp_mat[0])):
             print("{:3d}".format(i), end="")
         print()
-        for i in range(len(self.mat[0])):
+        for i in range(len(tmp_mat)):
             print("{:3d}".format(i), end="")
-            for j in range(len(self.mat)):
-                if tmp_mat[i][j] in tmp_topk[0]:
+            for j in range(len(tmp_mat[0])):
+                if tmp_topk[i][j] > 0:
                     print("  *", end="")
                 else:
                     print("   ", end="")
