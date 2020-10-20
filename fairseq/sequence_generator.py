@@ -199,7 +199,7 @@ class SequenceGenerator(nn.Module):
         # Note that src_tokens may have more than 2 dimenions (i.e. audio features)
         bsz, src_len = src_tokens.size()[:2]
         if getattr(self, "saliency", None) is not None and self.smoothgrad != 0.0:
-            bsz = 100
+            bsz = self.smoothgrad_samples
         beam_size = self.beam_size
 
         if constraints is not None and not self.search.supports_constraints:
@@ -222,8 +222,8 @@ class SequenceGenerator(nn.Module):
         ), "min_len cannot be larger than max_len, please adjust these!"
         # compute the encoder output for each beam
         if getattr(self, "saliency", None) is not None and self.smoothgrad != 0.0:
-            net_input['src_tokens'] = net_input['src_tokens'].repeat(100,1)
-            net_input['src_lengths'] = net_input['src_lengths'].repeat(100)
+            net_input['src_tokens'] = net_input['src_tokens'].repeat(self.smoothgrad_samples,1)
+            net_input['src_lengths'] = net_input['src_lengths'].repeat(self.smoothgrad_samples)
         encoder_outs = self.model.forward_encoder(net_input)
 
         # placeholder of indices for bsz * beam_size to hold tokens and accumulative scores

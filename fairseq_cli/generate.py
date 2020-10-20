@@ -131,6 +131,7 @@ def _main(args, output_file):
     generator.saliency = args.saliency
     generator.force_decode = args.force_decode
     generator.smoothgrad = args.smoothgrad
+    generator.smoothgrad_samples = args.smoothgrad_samples
 
     # Handle tokenization and BPE
     tokenizer = encoders.build_tokenizer(args)

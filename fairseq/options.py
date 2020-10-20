@@ -719,6 +719,7 @@ def add_generation_args(parser):
     parser.add_argument('--saliency', action='store_const', const=SaliencyPrint())
     parser.add_argument('--force-decode', action='store_const', const=ForceDecode())
     parser.add_argument('--smoothgrad', default=0.0, type=float)
+    parser.add_argument('--smoothgrad-samples', default=50, type=int)
     return group
 
 
