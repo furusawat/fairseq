@@ -43,12 +43,12 @@ class SaliencyPrint():
                 if tmp_topk[i][j] > 0:
                     print("{} {}".format(i,j))
 
-        print("   ", end="")
+        print("    ", end="")
         for i in range(len(tmp_mat[0])):
             print("{:3d}".format(i), end="")
         print()
         for i in range(len(tmp_mat)):
-            print("{:3d}".format(i), end="")
+            print("{:4d}".format(i), end="")
             for j in range(len(tmp_mat[0])):
                 if tmp_topk[i][j] > 0:
                     print("  *", end="")

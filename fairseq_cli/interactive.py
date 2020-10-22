@@ -235,18 +235,18 @@ def main(args):
         # sort output to match input order
         for id_, src_tokens, hypos, info in sorted(results, key=lambda x: x[0]):
             if src_dict is not None:
-                src_str = src_dict.string(src_tokens, args.remove_bpe)
-                if args.saliency is not None:
-                    print('{}'.format(src_str))
-                else:
-                    print('S-{}\t{}'.format(id_, src_str))
-                    print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
-                    for constraint in info["constraints"]:
-                        print("C-{}\t{}".format(id_, tgt_dict.string(constraint, args.remove_bpe)))
+              src_str = src_dict.string(src_tokens, args.remove_bpe)
+              if args.saliency is not None:
+                print('{}'.format(src_str))
+              else:
+                print('S-{}\t{}'.format(id_, src_str))
+                print("W-{}\t{:.3f}\tseconds".format(id_, info["time"]))
+                for constraint in info["constraints"]:
+                    print("C-{}\t{}".format(id_, tgt_dict.string(constraint, args.remove_bpe)))
 
             # Process top predictions
             for hypo in hypos[:min(len(hypos), args.nbest)]:
-                hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
+              hypo_tokens, hypo_str, alignment = utils.post_process_prediction(
                     hypo_tokens=hypo['tokens'].int().cpu(),
                     src_str=src_str,
                     alignment=hypo['alignment'],
@@ -255,32 +255,30 @@ def main(args):
                     remove_bpe=args.remove_bpe,
                     extra_symbols_to_ignore=get_symbols_to_strip_from_output(generator),
                 )
-                detok_hypo_str = decode_fn(hypo_str)
-                score = hypo['score'] / math.log(2)  # convert to base 2
-                if args.saliency is not None:
-                    print('{}'.format(hypo_str))
-                else:
-                    # original hypothesis (after tokenization and BPE)
-                    print('H-{}\t{}\t{}'.format(id_, score, hypo_str))
-                    # detokenized hypothesis
-                    print('D-{}\t{}\t{}'.format(id_, score, detok_hypo_str))
-                    print('P-{}\t{}'.format(
-                        id_,
-                        ' '.join(map(
-                            lambda x: '{:.4f}'.format(x),
-                            # convert from base e to base 2
-                            hypo['positional_scores'].div_(math.log(2)).tolist(),
-                        ))
+              detok_hypo_str = decode_fn(hypo_str)
+              score = hypo['score'] / math.log(2)  # convert to base 2
+              if args.saliency is not None:
+                print('{}'.format(hypo_str))
+                args.saliency.PrintGrad()
+              else:
+                # original hypothesis (after tokenization and BPE)
+                print('H-{}\t{}\t{}'.format(id_, score, hypo_str))
+                # detokenized hypothesis
+                print('D-{}\t{}\t{}'.format(id_, score, detok_hypo_str))
+                print('P-{}\t{}'.format(
+                    id_,
+                    ' '.join(map(
+                        lambda x: '{:.4f}'.format(x),
+                        # convert from base e to base 2
+                        hypo['positional_scores'].div_(math.log(2)).tolist(),
                     ))
-                    if args.print_alignment:
-                        alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
-                        print('A-{}\t{}'.format(
-                            id_,
-                            alignment_str
-                        ))
-
-                if args.saliency is not None:
-                    args.saliency.PrintGrad()
+                ))
+                if args.print_alignment:
+                    alignment_str = " ".join(["{}-{}".format(src, tgt) for src, tgt in alignment])
+                    print('A-{}\t{}'.format(
+                        id_,
+                        alignment_str
+                    ))
 
         # update running id_ counter
         start_id += len(inputs)
