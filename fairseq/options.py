@@ -19,6 +19,12 @@ class SaliencyPrint():
 
     def __init__(self):
         self.mat = None
+        self.lowerbound = 0.9
+        self.upperbound = 0.4
+
+    def SetBounds(self, lower, upper):
+        self.lowerbound = lower
+        self.upperbound = upper
 
     def Grad(self, grad):
         tmp_grad = torch.sum(torch.abs(grad), dim=(0, 2))
@@ -31,12 +37,17 @@ class SaliencyPrint():
         tmp_mat = self.mat.permute(1, 0)
         tmp_mat = tmp_mat / torch.sum(tmp_mat, dim=0)
 
-        #tmp_topk = torch.topk(tmp_mat.reshape(-1), len(self.mat))
         tmp_topk = torch.zeros_like(tmp_mat)
         for i in range(len(tmp_mat)):
-            tmp_topk[i][torch.argmax(tmp_mat[i])] = 1
-        for i in range(len(tmp_mat[0])):
-            tmp_topk[torch.argmax(tmp_mat.permute(1,0)[i])][i] = 1
+            max_tmp = torch.max(tmp_mat[i])
+            for j in range(len(tmp_mat[0])):
+                if tmp_mat[i][j] > max_tmp * self.lowerbound:
+                    tmp_topk[i][j] = 1
+        for j in range(len(tmp_mat[0])):
+            max_tmp = torch.max(tmp_mat.transpose(0,1)[j])
+            for i in range(len(tmp_mat)):
+                if tmp_mat[i][j] < max_tmp * self.upperbound:
+                    tmp_topk[i][j] = 0
 
         for i in range(len(tmp_mat)):
             for j in range(len(tmp_mat[0])):
@@ -720,6 +731,8 @@ def add_generation_args(parser):
     parser.add_argument('--force-decode', action='store_const', const=ForceDecode())
     parser.add_argument('--smoothgrad', default=0.0, type=float)
     parser.add_argument('--smoothgrad-samples', default=50, type=int)
+    parser.add_argument('--inputgrad-lowerbound', default=0.9, type=float)
+    parser.add_argument('--outputgrad-upperbound', default=0.4, type=float)
     return group
 
 

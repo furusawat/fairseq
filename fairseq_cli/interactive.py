@@ -290,6 +290,7 @@ def cli_main():
     args = options.parse_args_and_arch(parser)
     if args.saliency is not None:
         args.beam = 1
+        args.saliency.SetBounds(args.inputgrad_lowerbound, args.outputgrad_upperbound)
     args.force_decode = None
     distributed_utils.call_main(args, main)
 

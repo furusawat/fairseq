@@ -305,6 +305,7 @@ def cli_main():
         args.batch_size = 1
         args.max_sentences = 1
         args.no_progress_bar = True
+        args.saliency.SetBounds(args.inputgrad_lowerbound, args.outputgrad_upperbound)
     main(args)
 
 
