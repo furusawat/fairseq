@@ -230,6 +230,7 @@ def _main(args, output_file):
                   if args.saliency is not None:
                     print('{}'.format(hypo_str), file=output_file)
                     args.saliency.PrintGrad()
+                    print('\t{}'.format(score), file=output_file)
                   else:
                     # original hypothesis (after tokenization and BPE)
                     print('H-{}\t{}\t{}'.format(sample_id, score, hypo_str), file=output_file)
